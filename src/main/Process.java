@@ -1,24 +1,34 @@
 package main;
 
 import contracts.Orderable;
+import structures.Queue;
+import utils.exceptions.EmptyListException;
 
 public class Process implements Orderable {
 
     private int id;
     private String name;
     private int remainingTime;
-    private String message;
+
+    private static int nextId = 0;
+    private static Queue<String> examplesOfNames = null;
 
     /**
-     * @param id
      * @param remainingTime
-     * @param name
      */
-    public Process(int id, int remainingTime) {
-        this.id = id;
-        this.name = "Processo #" + id;
+    public Process(int remainingTime) {
+        this.id = Process.getNextId();
         this.remainingTime = remainingTime;
-        this.message = "Oi, sou o " + this.getName();
+
+        if (Process.examplesOfNames == null) {
+            Process.examplesOfNames = ProcessNameQueueGenerator.get();
+        }
+
+        this.setName();
+    }
+
+    private static int getNextId() {
+        return Process.nextId++;
     }
 
     @Override
@@ -43,15 +53,20 @@ public class Process implements Orderable {
     /**
      * @return
      */
-    public String getMessage() {
-        return message;
-    }
-
-    /**
-     * @return
-     */
     public int getId() {
         return id;
+    }
+
+    private void setName(String name) {
+        this.name = name;
+    }
+
+    private void setName() {
+        try {
+            this.name = Process.examplesOfNames.pop();
+        } catch (EmptyListException e) {
+            this.setName("Process #" + this.getId());
+        }
     }
 
     /**
@@ -71,5 +86,5 @@ public class Process implements Orderable {
         String result = "[" + this.getRemainingTime().toString() + "s] " + this.getName();
         return result;
     }
-    
+
 }

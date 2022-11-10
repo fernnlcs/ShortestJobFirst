@@ -2,12 +2,13 @@ package main;
 
 import contracts.Orderable;
 import structures.PriorityQueue;
-import structures.Queue;
 import structures.SinglyLinkedList;
 import utils.exceptions.CPUIsBusyException;
 import utils.exceptions.CPUNotRunningException;
+import utils.exceptions.ItemNotFoundException;
 import utils.exceptions.QueueIndexException;
 import utils.exceptions.QueueMovementException;
+import utils.exceptions.TimeCounterException;
 import utils.exceptions.TransitionZoneException;
 
 public class CPU {
@@ -55,25 +56,27 @@ public class CPU {
             this.process = process;
             this.startTime = startTime;
 
-            // Define o tempo restante como 3s ou o tempo do processo, se for menor
-            if (process.getRemainingTime() < CPU.secondsPerExecution) {
-                this.remainingTime = process.getRemainingTime();
-            } else {
-                this.remainingTime = CPU.secondsPerExecution;
+            logger.log("Escolhido: " + this.process.toString() + ".");
+
+            // Recupera o processo da zona de transição, se houver
+            try {
+                recoverFromTransitionZone();
+            } catch (TransitionZoneException e) {
+                // Do nothing
             }
+
+            // Define o tempo restante como 3s ou o tempo do processo, se for menor
+            this.remainingTime = Math.min(process.getRemainingTime(), CPU.secondsPerExecution);
 
             // Define o tempo de encerramento
             this.endTime = this.startTime + this.remainingTime;
 
             // Adiciona ao histórico
-            history.addLast("[" + CPU.secondsToReadableTime(this.startTime) + " - "
-                    + CPU.secondsToReadableTime(this.getEndTime()) + "]\n" + this.process.getName() + " ("
+            history.addLast("[" + SecondsCounter.toReadableTime(this.startTime) + " - "
+                    + SecondsCounter.toReadableTime(this.getEndTime()) + "]\n" + this.process.getName() + " ("
                     + this.process.getRemainingTime() + "s -> " + (this.process.getRemainingTime() - this.remainingTime)
                     + "s)");
-
-            log("Lançado: " + this.process.getName() + ".");
-            log("Mensagem: \"" + this.process.getMessage() + "\".");
-            this.execute(1);
+            this.execute(secondsPerStep);
         }
 
         /**
@@ -99,19 +102,18 @@ public class CPU {
 
             if (this.process.getRemainingTime() > 0) {
                 try {
-                    log("Pausa: " + this.process.getName() + " interrompido.");
                     suspendToTransitionZone(process);
                 } catch (TransitionZoneException e) {
-                    log("Erro: Não foi possível suspender " + this.process.getName() + ". " + e.getMessage());
+                    logger.log("Erro: Não foi possível suspender " + this.process.toString() + ". " + e.getMessage());
                 }
             } else {
-                log("Descarte: " + this.process.getName() + " foi encerrado corretamente.");
+                logger.log("Descarte: " + this.process.toString() + " foi encerrado corretamente.");
             }
 
             try {
-                getProcessToExecute();
+                chooseProcessToExecute();
             } catch (CPUIsBusyException e) {
-                log("Erro: Não foi possível iniciar próximo processo automaticamente. " + e.getMessage());
+                logger.log("Erro: Não foi possível iniciar próximo processo automaticamente. " + e.getMessage());
             }
         }
 
@@ -119,10 +121,9 @@ public class CPU {
          * @param seconds
          */
         public void execute(int seconds) {
-            if (this.remainingTime >= 0) {
-                log("Em execução: " + this.process.getName() + ". Tempo cedido: "
-                        + this.remainingTime + "s. O processo ainda requer " + this.process.getRemainingTime()
-                        + "s.");
+            if (this.remainingTime > 0) {
+                logger.log("Em execução: " + this.process.toString() + ". Interrompendo em "
+                        + this.remainingTime + "s.");
 
                 if (this.remainingTime > 0) {
                     this.decrement(seconds);
@@ -140,26 +141,29 @@ public class CPU {
     private PriorityQueue<Process> queue = new PriorityQueue<>(true);
     private PriorityQueue<TaskToGenerate> tasks = new PriorityQueue<>(true);
     private SinglyLinkedList<String> history = new SinglyLinkedList<>();
-    private Queue<String> logger = new Queue<>();
+    private Logger logger;
     private Executor executing = null;
     private Process transitionZone = null;
-    private Integer executionTime = null;
-    private Integer nextId = 0;
+    private SecondsCounter executionTime;
 
     public static final int secondsPerStep = 1;
     public static final int secondsPerExecution = 3;
 
-    /**
-     * 
-     */
-    public CPU() {
+    public CPU(SecondsCounter timeCounter) {
+        this.executionTime = timeCounter;
+        this.logger = new Logger(timeCounter);
+    }
+
+    public CPU(Logger logger, SecondsCounter timeCounter) {
+        this.logger = logger;
+        this.executionTime = timeCounter;
     }
 
     /**
      * @return
      */
     public boolean isRunning() {
-        return this.executionTime != null;
+        return this.executionTime.isRunning();
     }
 
     /**
@@ -167,15 +171,6 @@ public class CPU {
      */
     public boolean isBusy() {
         return (this.executing != null);
-    }
-
-    /**
-     * @return
-     */
-    private int generateId() {
-        int result = this.nextId;
-        this.nextId += 1;
-        return result;
     }
 
     /**
@@ -195,9 +190,9 @@ public class CPU {
         try {
             TaskToGenerate task = new TaskToGenerate(second, quantity);
             this.tasks.insert(task);
-            this.log("Tarefa adicionada: " + task.toString());
+            this.logger.log("Tarefa adicionada: " + task.toString());
         } catch (QueueMovementException e) {
-            this.log("Não foi possível adicionar a tarefa.");
+            this.logger.log("Não foi possível adicionar a tarefa.");
         }
     }
 
@@ -206,19 +201,9 @@ public class CPU {
      * @return
      */
     public Process add() {
-        int id = this.generateId();
         int remainingTime = CPU.generateRemainingTime();
-
-        Process process = new Process(id, remainingTime);
-
-        try {
-            this.queue.insert(process);
-        } catch (QueueMovementException e) {
-            this.log("Erro: " + e.getMessage());
-        }
-
-        this.log("Processo adicionado: " + process);
-        return process;
+        Process process = new Process(remainingTime);
+        return this.add(process);
     }
 
     /**
@@ -229,10 +214,10 @@ public class CPU {
         try {
             this.queue.insert(process);
         } catch (QueueMovementException e) {
-            this.log("Erro: " + e.getMessage());
+            this.logger.log("Erro: " + e.getMessage());
         }
 
-        this.log("Processo adicionado: " + process);
+        this.logger.log("Processo adicionado à fila: " + process);
         return process;
     }
 
@@ -240,7 +225,7 @@ public class CPU {
      * @param quantity
      */
     public void generateProcesses(int quantity) {
-        this.log(quantity + " processos foram gerados automaticamente.");
+        this.logger.log(quantity + " processos foram gerados automaticamente.");
         for (int i = 0; i < quantity; i++) {
             this.add();
         }
@@ -253,10 +238,11 @@ public class CPU {
     private void suspendToTransitionZone(Process process) throws TransitionZoneException {
         if (this.transitionZone == null) {
             this.transitionZone = process;
-            log("Suspenso: Assim que outro processo for escolhido, " + process.getName() + " voltará para a lista.");
+            logger.log("Suspenso: Assim que outro processo for escolhido, " + process.toString()
+                    + " voltará para a lista.");
         } else {
             throw new TransitionZoneException(
-                    "Já existe outro processo suspenso (" + this.transitionZone.getName() + ").");
+                    "Já existe outro processo suspenso (" + this.transitionZone.toString() + ").");
         }
     }
 
@@ -267,7 +253,7 @@ public class CPU {
     private Process recoverFromTransitionZone() throws TransitionZoneException {
         if (this.transitionZone != null) {
             Process process = this.transitionZone;
-            this.log("Recuperação: " + process.getName() + " já pode voltar para a lista.");
+            this.logger.log("Recuperação: " + process.toString() + " já pode voltar para a lista.");
 
             this.add(process);
             this.transitionZone = null;
@@ -283,7 +269,7 @@ public class CPU {
      * @return
      * @throws CPUIsBusyException
      */
-    public Process getProcessToExecute() throws CPUIsBusyException {
+    public Process getProcessToExecuteOld() throws CPUIsBusyException {
 
         // Interrompe a ação, caso já tenha outro processo em execução
         if (this.isBusy()) {
@@ -304,7 +290,7 @@ public class CPU {
             // Põe o próximo processo em execução
             Process current;
             current = this.queue.remove();
-            this.executing = new Executor(current, this.executionTime);
+            this.executing = new Executor(current, this.executionTime.get());
 
             // Verifica se existe um processo suspenso, pendente de ser readicionado à lista
             try {
@@ -317,9 +303,9 @@ public class CPU {
         } catch (QueueMovementException e) {
 
             if (this.queue.size() > 0) {
-                this.log("Erro: Não foi possível pegar o próximo processo. " + e.getMessage());
+                this.logger.log("Erro: Não foi possível pegar o próximo processo. " + e.getMessage());
             } else {
-                this.log("A CPU está livre.");
+                this.logger.log("A CPU está livre.");
             }
 
         }
@@ -328,12 +314,47 @@ public class CPU {
     }
 
     /**
+     * @return
+     * @throws CPUIsBusyException
+     */
+    public Process chooseProcessToExecute() throws CPUIsBusyException {
+
+        // Não prossegue caso já tenha outro processo em execução
+        if (this.isBusy()) {
+            throw new CPUIsBusyException("Não foi possível executar o próximo processo. A CPU está ocupada. Aguarde.");
+        }
+
+        // Se a lista estiver vazia, verifica se há algum processo suspenso para
+        // executar.
+        if (this.queue.size() == 0) {
+            try {
+                this.recoverFromTransitionZone();
+            } catch (TransitionZoneException e) {
+                this.logger.log("A CPU está livre.");
+                return null;
+            }
+        }
+
+        Process next;
+
+        try {
+            next = this.queue.remove();
+        } catch (QueueMovementException e1) {
+            this.logger.log("Erro: " + e1.getMessage());
+            return null;
+        }
+
+        this.executing = new Executor(next, this.executionTime.get());
+        return next;
+    }
+
+    /**
      * 
      */
     private void doTasks() {
         try {
             TaskToGenerate possibleGenerator = this.tasks.getElement(1);
-            while (possibleGenerator.getIdentifier() == this.executionTime) {
+            while (possibleGenerator.getIdentifier() == this.executionTime.get()) {
                 this.generateProcesses(possibleGenerator.quantity);
                 this.tasks.remove();
                 possibleGenerator = this.tasks.getElement(1);
@@ -341,7 +362,7 @@ public class CPU {
         } catch (QueueIndexException e) {
             // Do nothing
         } catch (QueueMovementException e) {
-            this.log("Houve um erro ao descartar a tarefa.");
+            this.logger.log("Houve um erro ao descartar a tarefa.");
         }
     }
 
@@ -349,16 +370,12 @@ public class CPU {
      * 
      */
     private void doProcesses() {
-        if (this.isBusy()) {
+        try {
+            // Executa o próximo processo
+            this.chooseProcessToExecute();
+        } catch (CPUIsBusyException e) {
             // Continua a execução do processo em andamento
             this.executing.execute(CPU.secondsPerStep);
-        } else {
-            // Executa o próximo processo
-            try {
-                this.getProcessToExecute();
-            } catch (CPUIsBusyException e) {
-                this.log("Erro: " + e.getMessage());
-            }
         }
     }
 
@@ -366,27 +383,28 @@ public class CPU {
      * 
      */
     public void start() {
-        // Observa se a CPU já foi iniciada.
-        if (this.isRunning()) {
-            this.log("Comando para iniciar negado. A CPU já está em execução.");
-            return;
+        try {
+            if (!this.isRunning()) {
+                this.logger.report();
+                System.out.println();
+            }
+
+            // Atualiza o tempo
+            this.executionTime.start();
+            this.logger.log("A CPU foi iniciada.");
+
+            // Realiza as tarefas agendadas
+            this.doTasks();
+
+            // Mexe nos processos
+            this.doProcesses();
+
+            // Gera relatório
+            this.logger.report();
+        } catch (TimeCounterException e) {
+            this.logger.log("Comando para iniciar negado. A CPU já está em execução.");
+            this.logger.report();
         }
-
-        this.report();
-        System.out.println();
-
-        // Atualiza o tempo
-        this.executionTime = 0;
-        this.log("A CPU foi iniciada.");
-
-        // Realiza as tarefas agendadas
-        this.doTasks();
-
-        // Mexe nos processos
-        this.doProcesses();
-
-        // Gera relatório
-        this.report();
     }
 
     /**
@@ -397,12 +415,16 @@ public class CPU {
         // Inicia a CPU, se necessário
         if (!this.isRunning()) {
             this.start();
-            this.report();
+            this.logger.report();
             return;
         }
 
         // Atualiza o tempo
-        this.executionTime += CPU.secondsPerStep;
+        try {
+            this.executionTime.increment(CPU.secondsPerStep);
+        } catch (TimeCounterException e) {
+            // Do nothing
+        }
 
         // Realiza as tarefas agendadas
         this.doTasks();
@@ -411,7 +433,7 @@ public class CPU {
         this.doProcesses();
 
         // Gera relatório
-        this.report();
+        this.logger.report();
     }
 
     /**
@@ -425,29 +447,6 @@ public class CPU {
     }
 
     /**
-     * @param information
-     */
-    private void log(String information) {
-        this.logger.push(information);
-    }
-
-    /**
-     * 
-     */
-    public void report() {
-        try {
-            System.out.println("[" + this.getReadableExecutionTime() + "]");
-
-        } catch (CPUNotRunningException e) {
-            System.out.println("[Antes de a CPU iniciar]");
-        }
-
-        while (this.logger.size() > 0) {
-            System.out.println("> " + this.logger.pop().trim());
-        }
-    }
-
-    /**
      * @return
      * @throws CPUNotRunningException
      */
@@ -456,20 +455,7 @@ public class CPU {
             throw new CPUNotRunningException("A CPU não está em execução.");
         }
 
-        return CPU.secondsToReadableTime(this.executionTime);
-    }
-
-    /**
-     * @param total
-     * @return
-     */
-    private static String secondsToReadableTime(int total) {
-        int seconds = total % 60;
-        int minutes = (total / 60) % 60;
-        int hours = total / 3600;
-
-        return String.format("%02d", hours) + ":" + String.format("%02d", minutes) + ":"
-                + String.format("%02d", seconds);
+        return this.executionTime.toReadableTime();
     }
 
     /**
@@ -491,7 +477,11 @@ public class CPU {
      */
     public void showHistory() {
         for (int i = 0; i < this.history.size(); i++) {
-            System.out.println(this.history.search(i) + "\n");
+            try {
+                System.out.println(this.history.search(i) + "\n");
+            } catch (ItemNotFoundException e) {
+                // Do nothing
+            }
         }
     }
 }

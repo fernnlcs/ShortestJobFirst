@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import contracts.ListInterface;
+import utils.exceptions.EmptyListException;
+import utils.exceptions.ItemNotFoundException;
 import utils.exceptions.StructureException;
 
 public class SinglyLinkedList<Type extends Object> implements ListInterface<Type> {
@@ -75,7 +77,7 @@ public class SinglyLinkedList<Type extends Object> implements ListInterface<Type
     }
 
     @Override
-    public int addAfter(Type value, int id) {
+    public int addAfter(Type value, int id) throws ItemNotFoundException {
         Node target = this.searchNode(id);
 
         if (target == null) {
@@ -111,7 +113,7 @@ public class SinglyLinkedList<Type extends Object> implements ListInterface<Type
         return this.tail.data;
     }
 
-    private Node searchNode(int id) {
+    private Node searchNode(int id) throws ItemNotFoundException{
         Node current = this.head;
 
         while (current != null) {
@@ -121,7 +123,7 @@ public class SinglyLinkedList<Type extends Object> implements ListInterface<Type
             current = current.next;
         }
 
-        return null;
+        throw new ItemNotFoundException("O item não foi encontrado.");
     }
 
     public Type searchByIndex(int index) {
@@ -150,7 +152,7 @@ public class SinglyLinkedList<Type extends Object> implements ListInterface<Type
     }
 
     @Override
-    public Type search(int id) {
+    public Type search(int id) throws ItemNotFoundException {
         Node result = this.searchNode(id);
 
         if (result != null) {
@@ -161,12 +163,11 @@ public class SinglyLinkedList<Type extends Object> implements ListInterface<Type
     }
 
     @Override
-    public Type removeFirst() {
+    public Type removeFirst() throws EmptyListException {
         Node oldHead = this.head;
         
         if (oldHead == null) {
-            System.out.println("Lista vazia. Nada removido.");
-            return null;
+            throw new EmptyListException("Lista vazia. Nada removido.");
         }
 
         Node newHead = oldHead.next;
@@ -186,12 +187,11 @@ public class SinglyLinkedList<Type extends Object> implements ListInterface<Type
     }
 
     @Override
-    public Type removeLast() {
+    public Type removeLast() throws EmptyListException {
         Node oldTail = this.tail;
 
         if (oldTail == null) {
-            System.out.println("Lista vazia. Nada removido.");
-            return null;
+            throw new EmptyListException("Lista vazia. Nada removido.");
         }
 
         if (oldTail == this.head) {
@@ -232,7 +232,7 @@ public class SinglyLinkedList<Type extends Object> implements ListInterface<Type
     }
 
     @Override
-    public Type remove(int id) {
+    public Type remove(int id) throws ItemNotFoundException, EmptyListException{
         Node removable = this.searchNode(id);
 
         if (removable.id == this.head.id) {

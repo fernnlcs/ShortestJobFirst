@@ -1,0 +1,6 @@
+Word
+Excel
+Chrome
+Visual Studio Code
+IntelliJ IDEA
+Audacity

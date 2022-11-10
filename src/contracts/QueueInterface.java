@@ -1,8 +1,10 @@
 package contracts;
 
+import utils.exceptions.EmptyListException;
+
 public interface QueueInterface<Type> {
     void push(Type value);
-    Type pop();
+    Type pop() throws EmptyListException;
 
     Type peek();
 

@@ -11,6 +11,7 @@ import utils.exceptions.QueueMovementException;
 public class PriorityQueue<TypeQ extends Orderable> {
 
     private List<TypeQ> heap = new ArrayList<>();
+    // private Heap<TypeQ> heap = new Heap<>();
 
     private boolean descending = false;
 

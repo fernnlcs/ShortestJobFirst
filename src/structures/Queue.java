@@ -3,6 +3,7 @@ package structures;
 import java.util.List;
 
 import contracts.QueueInterface;
+import utils.exceptions.EmptyListException;
 
 public class Queue<Type> implements QueueInterface<Type> {
 
@@ -14,7 +15,7 @@ public class Queue<Type> implements QueueInterface<Type> {
     }
 
     @Override
-    public Type pop() {
+    public Type pop() throws EmptyListException {
         return this.list.removeFirst();
     }
 
