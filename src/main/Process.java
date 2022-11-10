@@ -8,7 +8,7 @@ public class Process implements Orderable {
 
     private int id;
     private String name;
-    private int remainingTime;
+    private SecondsCounter remainingTime;
 
     private static int nextId = 0;
     private static Queue<String> examplesOfNames = null;
@@ -18,7 +18,7 @@ public class Process implements Orderable {
      */
     public Process(int remainingTime) {
         this.id = Process.getNextId();
-        this.remainingTime = remainingTime;
+        this.remainingTime = new SecondsCounter(remainingTime);
 
         if (Process.examplesOfNames == null) {
             Process.examplesOfNames = ProcessNameQueueGenerator.get();
@@ -40,7 +40,7 @@ public class Process implements Orderable {
      * @return
      */
     public Integer getRemainingTime() {
-        return remainingTime;
+        return remainingTime.get();
     }
 
     /**
@@ -73,7 +73,7 @@ public class Process implements Orderable {
      * @param seconds
      */
     public void decrementRemainingTime(int seconds) {
-        this.remainingTime -= seconds;
+        this.remainingTime.decrement(seconds);
     }
 
     @Override

@@ -13,7 +13,7 @@ public class CPU {
         Process process;
         Integer startTime;
         Integer endTime;
-        Integer remainingTime;
+        SecondsCounter remainingTime;
 
         /**
          * @param process
@@ -34,15 +34,16 @@ public class CPU {
             }
 
             // Define o tempo restante como 3s ou o tempo do processo, se for menor
-            this.remainingTime = Math.min(process.getRemainingTime(), CPU.secondsPerExecution);
+            this.remainingTime = new SecondsCounter(Math.min(process.getRemainingTime(), CPU.secondsPerExecution));
 
             // Define o tempo de encerramento
-            this.endTime = this.startTime + this.remainingTime;
+            this.endTime = this.startTime + this.remainingTime.get();
 
             // Adiciona ao histórico
             history.addLast("[" + SecondsCounter.toReadableTime(this.startTime) + " - "
                     + SecondsCounter.toReadableTime(this.getEndTime()) + "]\n" + this.process.getName() + " ("
-                    + this.process.getRemainingTime() + "s -> " + (this.process.getRemainingTime() - this.remainingTime)
+                    + this.process.getRemainingTime() + "s -> "
+                    + (this.process.getRemainingTime() - this.remainingTime.get())
                     + "s)");
             this.execute(secondsPerStep);
         }
@@ -58,7 +59,8 @@ public class CPU {
          * @param seconds
          */
         public void decrement(int seconds) {
-            this.remainingTime -= seconds;
+            this.remainingTime.decrement(seconds);
+            ;
             this.process.decrementRemainingTime(seconds);
         }
 
@@ -89,16 +91,11 @@ public class CPU {
          * @param seconds
          */
         public void execute(int seconds) {
-            if (this.remainingTime > 0) {
+            if (this.remainingTime.get() > 0) {
                 logger.log("Em execução: " + this.process.toString() + ". Interrompendo em "
-                        + this.remainingTime + "s.");
+                        + this.remainingTime + ".");
 
-                if (this.remainingTime > 0) {
-                    this.decrement(seconds);
-                } else {
-                    this.interrupt();
-                }
-
+                this.decrement(seconds);
             } else {
                 this.interrupt();
             }

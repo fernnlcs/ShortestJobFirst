@@ -7,9 +7,15 @@ public class Logger {
 
     private Queue<String> queue = new Queue<>();
     private SecondsCounter counter;
+    private SecondsCounter estimator = null;
 
     public Logger(SecondsCounter counter) {
         this.counter = counter;
+    }
+
+    public Logger(SecondsCounter counter, SecondsCounter estimator) {
+        this.counter = counter;
+        this.estimator = estimator;
     }
 
     /**
@@ -23,7 +29,16 @@ public class Logger {
      * 
      */
     public void report() {
-        System.out.println("[" + this.counter.toReadableTime() + "]");
+        String label = "[" + this.counter.toReadableTime() + "]";
+
+        if (this.estimator != null && this.estimator.isRunning() && this.estimator.get() > 0) {
+            double proportion = (double) this.counter.get() / (double) this.estimator.get();
+            proportion *= 100;
+            proportion = Math.round(proportion);
+            label += " " + (int) proportion + "%";
+        }
+
+        System.out.println(label);
 
         while (this.queue.size() > 0) {
             try {

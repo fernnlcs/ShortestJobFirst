@@ -1,5 +1,8 @@
 package main;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.NoSuchElementException;
 import java.util.Scanner;
 
 import contracts.Orderable;
@@ -24,10 +27,11 @@ public class Simulator {
         protected int time;
         private boolean done = false;
 
-        public Task(int time) throws TaskException {
+        public Task(Type type, int time) throws TaskException {
             if (executionTime.isRunning() && executionTime.get() > time) {
                 throw new TaskException("Não é possível agendar uma tarefa para um tempo passado.");
             }
+            this.type = type;
             this.time = time;
         }
 
@@ -68,7 +72,7 @@ public class Simulator {
         int quantity;
 
         public TaskToGenerateProcesses(int time, int quantity) throws TaskException {
-            super(time);
+            super(Task.Type.GENERATE_PROCESSES, time);
             this.quantity = quantity;
         }
 
@@ -89,6 +93,7 @@ public class Simulator {
                 SecondsCounter remainingTime = generateRemainingTime();
                 Process newProcess = new Process(remainingTime.get());
                 cpu.add(newProcess);
+                estimator.increment(newProcess.getRemainingTime());
             }
 
             this.markAsDone();
@@ -107,21 +112,13 @@ public class Simulator {
 
     private CPU cpu;
     private Logger logger;
-    private SecondsCounter executionTime;
+    private SecondsCounter estimator = new SecondsCounter();
+    private SecondsCounter executionTime = new SecondsCounter();
     private PriorityQueue<Task> tasks = new PriorityQueue<>(true);
 
     public Simulator() {
-        this.executionTime = new SecondsCounter();
-        this.logger = new Logger(this.executionTime);
+        this.logger = new Logger(this.executionTime, this.estimator);
         this.cpu = new CPU(logger, executionTime);
-
-        this.present();
-    }
-
-    public Simulator(CPU cpu) {
-        this.cpu = cpu;
-        this.executionTime = new SecondsCounter();
-        this.logger = new Logger(this.executionTime);
 
         this.present();
     }
@@ -134,6 +131,7 @@ public class Simulator {
         }
 
         this.executionTime.start();
+        this.estimator.start();
         this.logger.log("A simulação foi iniciada.");
 
         this.doTasks();
@@ -147,6 +145,11 @@ public class Simulator {
         this.executionTime.increment(CPU.secondsPerStep);
         this.doTasks();
         this.cpu.doProcesses();
+
+        if (!cpu.isBusy()) {
+            this.estimator.increment(CPU.secondsPerStep);
+        }
+        
         this.logger.report();
     }
 
@@ -159,7 +162,7 @@ public class Simulator {
 
     public void addTaskToGenerateProcesses(int second, int processesQuantity) {
         try {
-            TaskToGenerateProcesses task = new TaskToGenerateProcesses(second, processesQuantity);
+            Task task = new TaskToGenerateProcesses(second, processesQuantity);
 
             try {
                 this.tasks.insert(task);
@@ -241,5 +244,37 @@ public class Simulator {
 
     public void showHistory() {
         this.cpu.showHistory();
+    }
+
+    public void importTasks(String pathname) throws FileNotFoundException {
+        File file = new File(pathname);
+        Scanner scanner = new Scanner(file);
+
+        while (scanner.hasNextLine()) {
+            try {
+                String serializedType = scanner.nextLine();
+
+                if (serializedType.isBlank()) {
+                    serializedType = scanner.nextLine();
+                }
+
+                Task.Type type = Task.Type.valueOf(serializedType);
+                int time = scanner.nextInt();
+
+                if (type == Task.Type.GENERATE_PROCESSES) {
+                    int quantity = scanner.nextInt();
+                    this.addTaskToGenerateProcesses(time, quantity);
+                }
+
+                // Consumir \n
+                if (scanner.hasNextLine()) {
+                    scanner.nextLine();
+                }
+            } catch (NoSuchElementException e) {
+                this.logger.log("Erro: Uma tarefa não pôde ser adicionada à simulação.");
+            }
+        }
+
+        scanner.close();
     }
 }
