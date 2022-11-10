@@ -114,13 +114,35 @@ public class Simulator {
         this.present();
     }
 
-    public void fowardSteps(int steps) {
-        this.cpu.fowardSteps(steps);
+    public void start() throws TimeCounterException {
+        // Imprimir log das atividades realizadas antes de iniciar a contagem
+        if (!this.executionTime.isRunning()) {
+            this.logger.report();
+            System.out.println();
+        }
+
+        this.executionTime.start();
+        this.logger.log("A simulação foi iniciada.");
+
+        this.doTasks();
+
+        this.cpu.doProcesses();
+
+        this.logger.report();
     }
 
     public void fowardStep() {
+        this.executionTime.increment(CPU.secondsPerStep);
         this.doTasks();
-        this.cpu.fowardStep();
+        this.cpu.doProcesses();
+        this.logger.report();
+    }
+
+    public void fowardSteps(int steps) {
+        for (int i = 0; i < steps; i++) {
+            this.fowardStep();
+            System.out.println();
+        }
     }
 
     public void addTaskToGenerateProcesses(int second, int processesQuantity) {
@@ -152,23 +174,6 @@ public class Simulator {
         } catch (QueueMovementException e) {
             this.logger.log("Houve um erro ao descartar a tarefa.");
         }
-    }
-
-    public void start() throws TimeCounterException {
-        // Imprimir log das atividades realizadas antes de iniciar a contagem
-        if (!this.executionTime.isRunning()) {
-            this.logger.report();
-            System.out.println();
-        }
-
-        this.executionTime.start();
-        this.logger.log("A simulação foi iniciada.");
-
-        this.doTasks();
-
-        this.cpu.doProcesses();
-
-        this.logger.report();
     }
 
     /**

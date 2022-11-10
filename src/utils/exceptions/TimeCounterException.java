@@ -1,6 +1,6 @@
 package utils.exceptions;
 
-public class TimeCounterException extends Exception {
+public class TimeCounterException extends RuntimeException {
 
     public TimeCounterException() {
     }

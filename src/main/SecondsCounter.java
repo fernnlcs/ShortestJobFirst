@@ -103,37 +103,4 @@ public class SecondsCounter {
     public String toString() {
         return this.seconds + "s";
     }
-
-    @Override
-    public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + ((seconds == null) ? 0 : seconds.hashCode());
-        return result;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj)
-            return true;
-        if (obj == null)
-            return false;
-        if (getClass() != obj.getClass())
-            return false;
-        SecondsCounter other = (SecondsCounter) obj;
-        if (seconds == null) {
-            if (other.seconds != null)
-                return false;
-        } else if (!seconds.equals(other.seconds))
-            return false;
-        return true;
-    }
-
-    public boolean equals(SecondsCounter other) {
-        return (this.seconds == other.seconds);
-    }
-
-    public boolean equals(Integer seconds) {
-        return (this.seconds == seconds);
-    }
 }

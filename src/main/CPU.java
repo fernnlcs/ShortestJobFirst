@@ -3,10 +3,8 @@ package main;
 import structures.PriorityQueue;
 import structures.SinglyLinkedList;
 import utils.exceptions.CPUIsBusyException;
-import utils.exceptions.CPUNotRunningException;
 import utils.exceptions.ItemNotFoundException;
 import utils.exceptions.QueueMovementException;
-import utils.exceptions.TimeCounterException;
 import utils.exceptions.TransitionZoneException;
 
 public class CPU {
@@ -131,13 +129,6 @@ public class CPU {
     /**
      * @return
      */
-    public boolean isRunning() {
-        return this.executionTime.isRunning();
-    }
-
-    /**
-     * @return
-     */
     public boolean isBusy() {
         return (this.executing != null);
     }
@@ -153,7 +144,7 @@ public class CPU {
             this.logger.log("Erro: " + e.getMessage());
         }
 
-        this.logger.log("Processo adicionado à fila: " + process);
+        this.logger.log("Processo adicionado à lista: " + process);
         return process;
     }
 
@@ -179,7 +170,7 @@ public class CPU {
     private Process recoverFromTransitionZone() throws TransitionZoneException {
         if (this.transitionZone != null) {
             Process process = this.transitionZone;
-            this.logger.log("Recuperação: " + process.toString() + " já pode voltar para a lista.");
+            this.logger.log("Liberado: " + process.toString() + " já pode voltar para a lista.");
 
             this.add(process);
             this.transitionZone = null;
@@ -189,54 +180,6 @@ public class CPU {
             throw new TransitionZoneException(
                     "Não tem nenhum processo suspenso.");
         }
-    }
-
-    /**
-     * @return
-     * @throws CPUIsBusyException
-     */
-    public Process getProcessToExecuteOld() throws CPUIsBusyException {
-
-        // Interrompe a ação, caso já tenha outro processo em execução
-        if (this.isBusy()) {
-            throw new CPUIsBusyException("Não foi possível executar o próximo processo. A CPU está ocupada. Aguarde.");
-        }
-
-        // Se a lista estiver vazia, verifica se há algum processo suspenso para
-        // executar.
-        if (this.queue.size() <= 0) {
-            try {
-                this.recoverFromTransitionZone();
-            } catch (TransitionZoneException e) {
-                // Do nothing
-            }
-        }
-
-        try {
-            // Põe o próximo processo em execução
-            Process current;
-            current = this.queue.remove();
-            this.executing = new Executor(current, this.executionTime.get());
-
-            // Verifica se existe um processo suspenso, pendente de ser readicionado à lista
-            try {
-                this.recoverFromTransitionZone();
-            } catch (TransitionZoneException e) {
-                // Do nothing
-            }
-
-            return current;
-        } catch (QueueMovementException e) {
-
-            if (this.queue.size() > 0) {
-                this.logger.log("Erro: Não foi possível pegar o próximo processo. " + e.getMessage());
-            } else {
-                this.logger.log("A CPU está livre.");
-            }
-
-        }
-
-        return null;
     }
 
     /**
@@ -285,79 +228,6 @@ public class CPU {
             // Continua a execução do processo em andamento
             this.executing.execute(CPU.secondsPerStep);
         }
-    }
-
-    /**
-     * 
-     */
-    public void start() {
-        try {
-            if (!this.isRunning()) {
-                this.logger.report();
-                System.out.println();
-            }
-
-            // Atualiza o tempo
-            this.executionTime.start();
-            this.logger.log("A CPU foi iniciada.");
-
-            // Mexe nos processos
-            this.doProcesses();
-
-            // Gera relatório
-            this.logger.report();
-        } catch (TimeCounterException e) {
-            this.logger.log("Comando para iniciar negado. A CPU já está em execução.");
-            this.logger.report();
-        }
-    }
-
-    /**
-     * @throws CPUIsBusyException
-     * 
-     */
-    public void fowardStep() {
-        // Inicia a CPU, se necessário
-        if (!this.isRunning()) {
-            this.start();
-            this.logger.report();
-            return;
-        }
-
-        // Atualiza o tempo
-        try {
-            this.executionTime.increment(CPU.secondsPerStep);
-        } catch (TimeCounterException e) {
-            // Do nothing
-        }
-
-        // Mexe nos processos
-        this.doProcesses();
-
-        // Gera relatório
-        this.logger.report();
-    }
-
-    /**
-     * @param quantity
-     */
-    public void fowardSteps(int quantity) {
-        for (int i = 0; i < quantity; i++) {
-            this.fowardStep();
-            System.out.println();
-        }
-    }
-
-    /**
-     * @return
-     * @throws CPUNotRunningException
-     */
-    public String getReadableExecutionTime() throws CPUNotRunningException {
-        if (!this.isRunning()) {
-            throw new CPUNotRunningException("A CPU não está em execução.");
-        }
-
-        return this.executionTime.toReadableTime();
     }
 
     /**
