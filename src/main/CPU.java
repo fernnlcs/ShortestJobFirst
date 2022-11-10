@@ -1,9 +1,7 @@
 package main;
 
 import structures.PriorityQueue;
-import structures.SinglyLinkedList;
 import utils.exceptions.CPUIsBusyException;
-import utils.exceptions.ItemNotFoundException;
 import utils.exceptions.QueueMovementException;
 import utils.exceptions.TransitionZoneException;
 
@@ -12,7 +10,6 @@ public class CPU {
     class Executor {
         Process process;
         Integer startTime;
-        Integer endTime;
         SecondsCounter remainingTime;
 
         /**
@@ -20,11 +17,11 @@ public class CPU {
          * @param startTime
          */
         public Executor(Process process, Integer startTime) {
+            logger.log("Escolhido: " + process.toString() + ".");
+
             // Define os atributos
             this.process = process;
             this.startTime = startTime;
-
-            logger.log("Escolhido: " + this.process.toString() + ".");
 
             // Recupera o processo da zona de transição, se houver
             try {
@@ -36,23 +33,9 @@ public class CPU {
             // Define o tempo restante como 3s ou o tempo do processo, se for menor
             this.remainingTime = new SecondsCounter(Math.min(process.getRemainingTime(), CPU.secondsPerExecution));
 
-            // Define o tempo de encerramento
-            this.endTime = this.startTime + this.remainingTime.get();
-
             // Adiciona ao histórico
-            history.addLast("[" + SecondsCounter.toReadableTime(this.startTime) + " - "
-                    + SecondsCounter.toReadableTime(this.getEndTime()) + "]\n" + this.process.getName() + " ("
-                    + this.process.getRemainingTime() + "s -> "
-                    + (this.process.getRemainingTime() - this.remainingTime.get())
-                    + "s)");
+            history.add(this.process.getRemainingTime(), this.process.getName());
             this.execute(secondsPerStep);
-        }
-
-        /**
-         * @return
-         */
-        public Integer getEndTime() {
-            return this.endTime;
         }
 
         /**
@@ -60,7 +43,6 @@ public class CPU {
          */
         public void decrement(int seconds) {
             this.remainingTime.decrement(seconds);
-            ;
             this.process.decrementRemainingTime(seconds);
         }
 
@@ -104,7 +86,7 @@ public class CPU {
     }
 
     private PriorityQueue<Process> queue = new PriorityQueue<>(true);
-    private SinglyLinkedList<String> history = new SinglyLinkedList<>();
+    private History history;
     private Logger logger;
     private Executor executing = null;
     private Process transitionZone = null;
@@ -116,11 +98,13 @@ public class CPU {
     public CPU(SecondsCounter timeCounter) {
         this.executionTime = timeCounter;
         this.logger = new Logger(timeCounter);
+        this.history = new History(timeCounter);
     }
 
     public CPU(Logger logger, SecondsCounter timeCounter) {
-        this.logger = logger;
         this.executionTime = timeCounter;
+        this.logger = logger;
+        this.history = new History(timeCounter);
     }
 
     /**
@@ -241,16 +225,7 @@ public class CPU {
         System.out.println(this.queue.toString());
     }
 
-    /**
-     * 
-     */
     public void showHistory() {
-        for (int i = 0; i < this.history.size(); i++) {
-            try {
-                System.out.println(this.history.search(i) + "\n");
-            } catch (ItemNotFoundException e) {
-                // Do nothing
-            }
-        }
+        this.history.show();
     }
 }

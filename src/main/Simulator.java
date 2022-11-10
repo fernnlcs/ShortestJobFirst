@@ -210,14 +210,13 @@ public class Simulator {
 
             if (input.equals("A")) {
                 System.out.println("Processos na fila (árvore):");
-                this.showQueueTree();
+                this.cpu.showQueueTree();
                 System.out.println();
             } else if (input.equals("L")) {
                 System.out.println("Processos na fila (lista):");
-                this.showQueueHeap();
+                this.cpu.showQueueHeap();
             } else if (input.equals("H")) {
-                System.out.println("Histórico de execuções:");
-                this.showHistory();
+                this.cpu.showHistory();
             } else {
                 try {
                     int steps = Integer.parseInt(input);
@@ -232,18 +231,6 @@ public class Simulator {
         }
 
         scanner.close();
-    }
-
-    public void showQueueTree() {
-        this.cpu.showQueueTree();
-    }
-
-    public void showQueueHeap() {
-        this.cpu.showQueueHeap();
-    }
-
-    public void showHistory() {
-        this.cpu.showHistory();
     }
 
     public void importTasks(String pathname) throws FileNotFoundException {
