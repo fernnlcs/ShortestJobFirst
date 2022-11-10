@@ -1,5 +1,7 @@
 package main;
 
+import java.util.Scanner;
+
 import contracts.Orderable;
 import structures.PriorityQueue;
 import utils.exceptions.QueueIndexException;
@@ -14,6 +16,11 @@ public class Simulator {
      */
     private abstract class Task implements Orderable {
 
+        enum Type {
+            GENERATE_PROCESSES;
+        }
+
+        private Type type;
         protected int time;
         private boolean done = false;
 
@@ -26,6 +33,14 @@ public class Simulator {
 
         public int getTime() {
             return this.time;
+        }
+
+        public Type getType() {
+            return type;
+        }
+
+        public boolean isDone() {
+            return this.done;
         }
 
         @Override
@@ -43,9 +58,6 @@ public class Simulator {
             this.done = false;
         }
 
-        public boolean isDone() {
-            return this.done;
-        }
     }
 
     /**
@@ -176,9 +188,6 @@ public class Simulator {
         }
     }
 
-    /**
-     * 
-     */
     public void present() {
         System.out.println(">>> Algoritmo SJF <<<\n");
         System.out.println("Tecle ENTER para avançar 01 segundo.");
@@ -188,6 +197,38 @@ public class Simulator {
         System.out.println("Digite 'l' ou 'L' para ver os processos em forma de heap.");
         System.out.println("Digite 'h' ou 'H' para ver o histórico de execuções.");
         System.out.println();
+    }
+
+    public void interact(Scanner scanner) {
+        String input = scanner.nextLine();
+        input = input.toUpperCase();
+
+        while (!input.equals("Q")) {
+
+            if (input.equals("A")) {
+                System.out.println("Processos na fila (árvore):");
+                this.showQueueTree();
+                System.out.println();
+            } else if (input.equals("L")) {
+                System.out.println("Processos na fila (lista):");
+                this.showQueueHeap();
+            } else if (input.equals("H")) {
+                System.out.println("Histórico de execuções:");
+                this.showHistory();
+            } else {
+                try {
+                    int steps = Integer.parseInt(input);
+                    this.fowardSteps(steps);
+                } catch (NumberFormatException e) {
+                    this.fowardStep();
+                }
+            }
+
+            input = scanner.nextLine();
+            input = input.toUpperCase();
+        }
+
+        scanner.close();
     }
 
     public void showQueueTree() {
