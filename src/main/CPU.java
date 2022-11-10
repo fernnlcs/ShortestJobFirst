@@ -1,45 +1,15 @@
 package main;
 
-import contracts.Orderable;
 import structures.PriorityQueue;
 import structures.SinglyLinkedList;
 import utils.exceptions.CPUIsBusyException;
 import utils.exceptions.CPUNotRunningException;
 import utils.exceptions.ItemNotFoundException;
-import utils.exceptions.QueueIndexException;
 import utils.exceptions.QueueMovementException;
 import utils.exceptions.TimeCounterException;
 import utils.exceptions.TransitionZoneException;
 
 public class CPU {
-
-    class TaskToGenerate implements Orderable {
-        int second;
-        int quantity;
-
-        /**
-         * @param seconds
-         * @param quantity
-         */
-        public TaskToGenerate(int seconds, int quantity) {
-            this.second = seconds;
-            this.quantity = quantity;
-        }
-
-        @Override
-        public Integer getIdentifier() {
-            return this.second;
-        }
-
-        @Override
-        public void show() {
-            System.out.println(this.toString());
-        }
-
-        public String toString() {
-            return "Aos " + this.second + "s, " + this.quantity + " processos serão gerados automaticamente.";
-        }
-    }
 
     class Executor {
         Process process;
@@ -139,7 +109,6 @@ public class CPU {
     }
 
     private PriorityQueue<Process> queue = new PriorityQueue<>(true);
-    private PriorityQueue<TaskToGenerate> tasks = new PriorityQueue<>(true);
     private SinglyLinkedList<String> history = new SinglyLinkedList<>();
     private Logger logger;
     private Executor executing = null;
@@ -174,39 +143,6 @@ public class CPU {
     }
 
     /**
-     * @return
-     */
-    private static int generateRemainingTime() {
-        final int min = 1;
-        final int max = 21;
-        return (int) (Math.random() * (max - min)) + min;
-    }
-
-    /**
-     * @param second
-     * @param quantity
-     */
-    public void addTask(int second, int quantity) {
-        try {
-            TaskToGenerate task = new TaskToGenerate(second, quantity);
-            this.tasks.insert(task);
-            this.logger.log("Tarefa adicionada: " + task.toString());
-        } catch (QueueMovementException e) {
-            this.logger.log("Não foi possível adicionar a tarefa.");
-        }
-    }
-
-    /**
-     * @param name
-     * @return
-     */
-    public Process add() {
-        int remainingTime = CPU.generateRemainingTime();
-        Process process = new Process(remainingTime);
-        return this.add(process);
-    }
-
-    /**
      * @param process
      * @return
      */
@@ -219,16 +155,6 @@ public class CPU {
 
         this.logger.log("Processo adicionado à fila: " + process);
         return process;
-    }
-
-    /**
-     * @param quantity
-     */
-    public void generateProcesses(int quantity) {
-        this.logger.log(quantity + " processos foram gerados automaticamente.");
-        for (int i = 0; i < quantity; i++) {
-            this.add();
-        }
     }
 
     /**
@@ -351,25 +277,7 @@ public class CPU {
     /**
      * 
      */
-    private void doTasks() {
-        try {
-            TaskToGenerate possibleGenerator = this.tasks.getElement(1);
-            while (possibleGenerator.getIdentifier() == this.executionTime.get()) {
-                this.generateProcesses(possibleGenerator.quantity);
-                this.tasks.remove();
-                possibleGenerator = this.tasks.getElement(1);
-            }
-        } catch (QueueIndexException e) {
-            // Do nothing
-        } catch (QueueMovementException e) {
-            this.logger.log("Houve um erro ao descartar a tarefa.");
-        }
-    }
-
-    /**
-     * 
-     */
-    private void doProcesses() {
+    public void doProcesses() {
         try {
             // Executa o próximo processo
             this.chooseProcessToExecute();
@@ -392,9 +300,6 @@ public class CPU {
             // Atualiza o tempo
             this.executionTime.start();
             this.logger.log("A CPU foi iniciada.");
-
-            // Realiza as tarefas agendadas
-            this.doTasks();
 
             // Mexe nos processos
             this.doProcesses();
@@ -425,9 +330,6 @@ public class CPU {
         } catch (TimeCounterException e) {
             // Do nothing
         }
-
-        // Realiza as tarefas agendadas
-        this.doTasks();
 
         // Mexe nos processos
         this.doProcesses();

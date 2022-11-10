@@ -4,6 +4,7 @@ import java.util.Scanner;
 
 import main.Simulator;
 import utils.exceptions.QueueMovementException;
+import utils.exceptions.TimeCounterException;
 
 public class App {
     public static void main(String[] args) throws Exception {
@@ -12,10 +13,15 @@ public class App {
 
     public static void example1() throws QueueMovementException {
         Simulator simulator = new Simulator();
-        simulator.addTask(0, 4);
-        simulator.addTask(10, 8);
-        simulator.addTask(20, 16);
-        simulator.start();
+        simulator.addTaskToGenerateProcesses(0, 4);
+        simulator.addTaskToGenerateProcesses(10, 8);
+        simulator.addTaskToGenerateProcesses(20, 16);
+
+        try {
+            simulator.start();
+        } catch (TimeCounterException e1) {
+            simulator.fowardStep();
+        }
 
         Scanner scanner = new Scanner(System.in);
         String input = scanner.nextLine();
