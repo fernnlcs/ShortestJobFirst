@@ -1,19 +1,20 @@
 package main;
 
+import contracts.TimeCounter;
 import structures.Queue;
 import utils.exceptions.EmptyListException;
 
 public class Logger {
 
     private Queue<String> queue = new Queue<>();
-    private SecondsCounter counter;
-    private SecondsCounter estimator = null;
+    private TimeCounter counter;
+    private TimeCounter estimator = null;
 
-    public Logger(SecondsCounter counter) {
+    public Logger(TimeCounter counter) {
         this.counter = counter;
     }
 
-    public Logger(SecondsCounter counter, SecondsCounter estimator) {
+    public Logger(TimeCounter counter, TimeCounter estimator) {
         this.counter = counter;
         this.estimator = estimator;
     }

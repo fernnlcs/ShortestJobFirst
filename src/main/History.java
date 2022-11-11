@@ -1,5 +1,6 @@
 package main;
 
+import contracts.TimeCounter;
 import structures.SinglyLinkedList;
 import utils.exceptions.ItemNotFoundException;
 
@@ -39,9 +40,9 @@ public class History {
     }
 
     SinglyLinkedList<Event> events = new SinglyLinkedList<>();
-    SecondsCounter counter;
+    TimeCounter counter;
 
-    public History(SecondsCounter counter) {
+    public History(TimeCounter counter) {
         this.counter = counter;
     }
 

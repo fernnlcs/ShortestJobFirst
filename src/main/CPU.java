@@ -1,5 +1,6 @@
 package main;
 
+import contracts.TimeCounter;
 import structures.PriorityQueue;
 import utils.exceptions.CPUIsBusyException;
 import utils.exceptions.QueueMovementException;
@@ -10,7 +11,7 @@ public class CPU {
     class Executor {
         Process process;
         Integer startTime;
-        SecondsCounter remainingTime;
+        TimeCounter remainingTime;
 
         /**
          * @param process
@@ -90,18 +91,18 @@ public class CPU {
     private Logger logger;
     private Executor executing = null;
     private Process transitionZone = null;
-    private SecondsCounter executionTime;
+    private TimeCounter executionTime;
 
     public static final int secondsPerStep = 1;
     public static final int secondsPerExecution = 3;
 
-    public CPU(SecondsCounter timeCounter) {
+    public CPU(TimeCounter timeCounter) {
         this.executionTime = timeCounter;
         this.logger = new Logger(timeCounter);
         this.history = new History(timeCounter);
     }
 
-    public CPU(Logger logger, SecondsCounter timeCounter) {
+    public CPU(Logger logger, TimeCounter timeCounter) {
         this.executionTime = timeCounter;
         this.logger = logger;
         this.history = new History(timeCounter);

@@ -6,6 +6,7 @@ import java.util.NoSuchElementException;
 import java.util.Scanner;
 
 import contracts.Orderable;
+import contracts.TimeCounter;
 import structures.PriorityQueue;
 import utils.exceptions.QueueIndexException;
 import utils.exceptions.QueueMovementException;
@@ -79,7 +80,7 @@ public class Simulator {
         /**
          * @return
          */
-        private static SecondsCounter generateRemainingTime() {
+        private static TimeCounter generateRemainingTime() {
             final int min = 1;
             final int max = 21;
             return new SecondsCounter((int) (Math.random() * (max - min)) + min);
@@ -90,7 +91,7 @@ public class Simulator {
             logger.log(this.quantity + " processos foram gerados automaticamente.");
 
             for (int i = 0; i < this.quantity; i++) {
-                SecondsCounter remainingTime = generateRemainingTime();
+                TimeCounter remainingTime = generateRemainingTime();
                 Process newProcess = new Process(remainingTime.get());
                 cpu.add(newProcess);
                 estimator.increment(newProcess.getRemainingTime());
@@ -112,8 +113,8 @@ public class Simulator {
 
     private CPU cpu;
     private Logger logger;
-    private SecondsCounter estimator = new SecondsCounter();
-    private SecondsCounter executionTime = new SecondsCounter();
+    private TimeCounter estimator = new SecondsCounter();
+    private TimeCounter executionTime = new SecondsCounter();
     private PriorityQueue<Task> tasks = new PriorityQueue<>(true);
 
     public Simulator() {

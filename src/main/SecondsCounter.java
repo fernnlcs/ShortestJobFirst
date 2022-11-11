@@ -1,8 +1,9 @@
 package main;
 
+import contracts.TimeCounter;
 import utils.exceptions.TimeCounterException;
 
-public class SecondsCounter {
+public class SecondsCounter implements TimeCounter {
     // null significa que o contador ainda está em preparação
     private Integer seconds = null;
 

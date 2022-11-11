@@ -1,6 +1,7 @@
 package main;
 
 import contracts.Orderable;
+import contracts.TimeCounter;
 import structures.Queue;
 import utils.exceptions.EmptyListException;
 
@@ -8,7 +9,7 @@ public class Process implements Orderable {
 
     private int id;
     private String name;
-    private SecondsCounter remainingTime;
+    private TimeCounter remainingTime;
 
     private static int nextId = 0;
     private static Queue<String> examplesOfNames = null;
